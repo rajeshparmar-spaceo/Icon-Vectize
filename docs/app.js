@@ -20,6 +20,8 @@ const strokeWidthInput = document.getElementById('strokeWidth');
 const strokeWidthOption = document.getElementById('strokeWidthOption');
 
 let upscaleValue = 1;
+let currentFile = null;
+let currentSvg = null;
 
 upscaleBtns.addEventListener('click', (e) => {
   const btn = e.target.closest('.upscale-btn');
@@ -29,7 +31,6 @@ upscaleBtns.addEventListener('click', (e) => {
   upscaleValue = parseInt(btn.dataset.value);
 });
 
-// Range display
 thresholdInput.addEventListener('input', () => {
   document.getElementById('thresholdVal').textContent = thresholdInput.value;
 });
@@ -39,37 +40,28 @@ turdSizeInput.addEventListener('input', () => {
 alphaMaxInput.addEventListener('input', () => {
   document.getElementById('alphaMaxVal').textContent = parseFloat(alphaMaxInput.value).toFixed(2);
 });
-
 strokeModeInput.addEventListener('change', () => {
   strokeWidthOption.hidden = !strokeModeInput.checked;
 });
-
 strokeWidthInput.addEventListener('input', () => {
   document.getElementById('strokeWidthVal').textContent = parseFloat(strokeWidthInput.value).toFixed(1);
 });
-
-let currentFile = null;
-let currentSvg = null;
 
 // Drag and drop
 dropZone.addEventListener('dragover', (e) => {
   e.preventDefault();
   dropZone.classList.add('dragover');
 });
-
 dropZone.addEventListener('dragleave', () => {
   dropZone.classList.remove('dragover');
 });
-
 dropZone.addEventListener('drop', (e) => {
   e.preventDefault();
   dropZone.classList.remove('dragover');
   const file = e.dataTransfer.files[0];
   if (file) handleFile(file);
 });
-
 dropZone.addEventListener('click', () => fileInput.click());
-
 fileInput.addEventListener('change', () => {
   if (fileInput.files[0]) handleFile(fileInput.files[0]);
 });
@@ -79,23 +71,17 @@ function handleFile(file) {
     showToast('Please upload an image file (PNG, JPG, WEBP, GIF)');
     return;
   }
-
   currentFile = file;
   currentSvg = null;
 
-  // Show original preview
   const reader = new FileReader();
-  reader.onload = (e) => {
-    originalPreview.src = e.target.result;
-  };
+  reader.onload = (e) => { originalPreview.src = e.target.result; };
   reader.readAsDataURL(file);
 
-  // Show options & preview sections
   optionsSection.hidden = false;
   previewSection.hidden = false;
   downloadActions.hidden = true;
 
-  // Clear SVG preview
   const existing = svgPreviewBox.querySelector('svg, img.svg-result');
   if (existing) existing.remove();
   spinner.classList.remove('active');
@@ -108,37 +94,25 @@ vectorizeBtn.addEventListener('click', async () => {
   vectorizeBtn.textContent = upscaleValue > 1 ? `Upscaling ${upscaleValue}x then vectorizing…` : 'Vectorizing…';
   downloadActions.hidden = true;
 
-  // Clear previous SVG
   const existing = svgPreviewBox.querySelector('svg, img.svg-result');
   if (existing) existing.remove();
   spinner.classList.add('active');
 
-  const formData = new FormData();
-  formData.append('icon', currentFile);
-  formData.append('upscale', upscaleValue);
-  formData.append('threshold', thresholdInput.value);
-  formData.append('turdSize', turdSizeInput.value);
-  formData.append('alphaMax', alphaMaxInput.value);
-  formData.append('color', colorInput.value);
-  formData.append('strokeMode', strokeModeInput.checked);
-  formData.append('strokeWidth', strokeWidthInput.value);
-
   try {
-    const res = await fetch('/vectorize', { method: 'POST', body: formData });
+    const svg = await vectorizeInBrowser(currentFile, {
+      upscale: upscaleValue,
+      threshold: parseInt(thresholdInput.value),
+      turdSize: parseInt(turdSizeInput.value),
+      color: colorInput.value,
+      strokeMode: strokeModeInput.checked,
+      strokeWidth: parseFloat(strokeWidthInput.value),
+    });
 
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({ error: 'Unknown error' }));
-      throw new Error(data.error || 'Server error');
-    }
-
-    const svgText = await res.text();
-    currentSvg = svgText;
-
+    currentSvg = svg;
     spinner.classList.remove('active');
 
-    // Render SVG inline
     const container = document.createElement('div');
-    container.innerHTML = svgText;
+    container.innerHTML = svg;
     const svgEl = container.querySelector('svg');
     if (svgEl) {
       svgEl.style.maxWidth = '80%';
@@ -147,7 +121,6 @@ vectorizeBtn.addEventListener('click', async () => {
     }
 
     downloadActions.hidden = false;
-
   } catch (err) {
     spinner.classList.remove('active');
     showToast('Error: ' + err.message);
@@ -156,6 +129,82 @@ vectorizeBtn.addEventListener('click', async () => {
     vectorizeBtn.textContent = 'Vectorize';
   }
 });
+
+async function vectorizeInBrowser(file, opts) {
+  const img = await loadImage(file);
+
+  const scale = opts.upscale;
+  const canvas = document.createElement('canvas');
+  canvas.width = img.naturalWidth * scale;
+  canvas.height = img.naturalHeight * scale;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  applyThreshold(imageData, opts.threshold);
+
+  const traceOptions = {
+    colorsampling: 0,
+    numberofcolors: 2,
+    pal: [
+      { r: 0, g: 0, b: 0, a: 255 },
+      { r: 255, g: 255, b: 255, a: 0 }
+    ],
+    ltres: 1,
+    qtres: 1,
+    pathomit: opts.turdSize,
+    rightangleenhance: true,
+    strokewidth: 0,
+    linefilter: false,
+    desc: false,
+    viewbox: true,
+    scale: 1 / scale,
+  };
+
+  const svgStr = ImageTracer.imagedataToSVG(imageData, traceOptions);
+  return postProcessSvg(svgStr, opts);
+}
+
+function applyThreshold(imageData, threshold) {
+  const d = imageData.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const gray = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+    const alpha = d[i + 3];
+    if (alpha < 128 || gray > threshold) {
+      d[i] = 255; d[i + 1] = 255; d[i + 2] = 255; d[i + 3] = 0;
+    } else {
+      d[i] = 0; d[i + 1] = 0; d[i + 2] = 0; d[i + 3] = 255;
+    }
+  }
+}
+
+function postProcessSvg(svg, opts) {
+  if (opts.strokeMode) {
+    svg = svg.replace(/<path\b([^>]*?)\/?>/gi, (match, attrs) => {
+      let newAttrs = attrs
+        .replace(/\s+fill="[^"]*"/g, '')
+        .replace(/\s+stroke="[^"]*"/g, '')
+        .replace(/\s+fill-rule="[^"]*"/g, '');
+      const selfClose = match.trimEnd().endsWith('/>') ? '/' : '';
+      return `<path fill="none" stroke="${opts.color}" stroke-width="${opts.strokeWidth}" stroke-linecap="round" stroke-linejoin="round"${newAttrs}${selfClose}>`;
+    });
+  } else {
+    svg = svg
+      .replace(/fill="#000000"/gi, `fill="${opts.color}"`)
+      .replace(/fill="rgb\(\s*0\s*,\s*0\s*,\s*0\s*\)"/gi, `fill="${opts.color}"`);
+  }
+  return svg;
+}
+
+function loadImage(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Failed to load image')); };
+    img.src = url;
+  });
+}
 
 downloadBtn.addEventListener('click', () => {
   if (!currentSvg) return;
@@ -181,7 +230,6 @@ resetBtn.addEventListener('click', () => {
   if (existing) existing.remove();
 });
 
-// Toast helper
 let toastTimeout;
 function showToast(msg) {
   let toast = document.querySelector('.toast');
