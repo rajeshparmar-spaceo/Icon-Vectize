@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Icon Vectize</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>Icon Vectize</h1>
+      <p>Convert PNG / JPG icons to clean SVG vectors</p>
+    </header>
+
+    <main>
+      <!-- Upload Area -->
+      <section class="upload-section">
+        <div class="drop-zone" id="dropZone">
+          <div class="drop-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M12 16V4m0 0L8 8m4-4 4 4"/>
+              <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>
+            </svg>
+          </div>
+          <p class="drop-text">Drag &amp; drop an icon here</p>
+          <p class="drop-sub">or</p>
+          <label class="browse-btn" for="fileInput">Browse file</label>
+          <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp,image/gif" hidden />
+          <p class="drop-hint">PNG, JPG, WEBP, GIF &mdash; up to 10MB</p>
+        </div>
+      </section>
+
+      <!-- Options -->
+      <section class="options-section" id="optionsSection" hidden>
+        <h2>Vectorization Options</h2>
+
+        <div class="upscale-row">
+          <span class="upscale-label">Upscale before vectorize</span>
+          <div class="upscale-btns" id="upscaleBtns">
+            <button class="upscale-btn active" data-value="1">1x</button>
+            <button class="upscale-btn" data-value="2">2x</button>
+            <button class="upscale-btn" data-value="4">4x</button>
+            <button class="upscale-btn" data-value="8">8x</button>
+          </div>
+          <small>Higher = better trace quality for small icons</small>
+        </div>
+
+        <div class="options-grid">
+          <div class="option">
+            <label for="threshold">Threshold <span class="val" id="thresholdVal">128</span></label>
+            <input type="range" id="threshold" min="1" max="255" value="128" />
+            <small>Controls where light/dark boundary falls</small>
+          </div>
+          <div class="option">
+            <label for="turdSize">Noise filter <span class="val" id="turdSizeVal">2</span></label>
+            <input type="range" id="turdSize" min="0" max="20" value="2" />
+            <small>Remove speckles smaller than this size</small>
+          </div>
+          <div class="option">
+            <label for="alphaMax">Corner smoothing <span class="val" id="alphaMaxVal">1.0</span></label>
+            <input type="range" id="alphaMax" min="0" max="1.33" step="0.01" value="1" />
+            <small>Higher = smoother curves</small>
+          </div>
+          <div class="option">
+            <label for="color">Icon color</label>
+            <input type="color" id="color" value="#000000" />
+          </div>
+          <div class="option">
+            <label for="strokeMode">
+              Stroke mode
+              <label class="toggle">
+                <input type="checkbox" id="strokeMode" />
+                <span class="toggle-slider"></span>
+              </label>
+            </label>
+            <small>Output editable stroke paths instead of fills</small>
+          </div>
+        </div>
+        <div class="option stroke-width-row" id="strokeWidthOption" hidden>
+          <label for="strokeWidth">Stroke width <span class="val" id="strokeWidthVal">2.0</span></label>
+          <input type="range" id="strokeWidth" min="0.5" max="20" step="0.5" value="2" />
+          <small>SVG stroke-width applied to all paths</small>
+        </div>
+        <button class="vectorize-btn" id="vectorizeBtn">Vectorize</button>
+      </section>
+
+      <!-- Preview -->
+      <section class="preview-section" id="previewSection" hidden>
+        <div class="preview-panes">
+          <div class="pane">
+            <h3>Original</h3>
+            <div class="preview-box checker">
+              <img id="originalPreview" alt="Original icon" />
+            </div>
+          </div>
+          <div class="pane">
+            <h3>SVG Output</h3>
+            <div class="preview-box checker" id="svgPreviewBox">
+              <div class="spinner" id="spinner"></div>
+            </div>
+          </div>
+        </div>
+        <div class="actions" id="downloadActions" hidden>
+          <button class="download-btn" id="downloadBtn">Download SVG</button>
+          <button class="reset-btn" id="resetBtn">Vectorize another</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
