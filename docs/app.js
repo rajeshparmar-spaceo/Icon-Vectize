@@ -13,6 +13,37 @@ const downloadActions = document.getElementById('downloadActions');
 const previewModal = document.getElementById('previewModal');
 const modalSvg = document.getElementById('modalSvg');
 const modalClose = document.getElementById('modalClose');
+const zoomInBtn = document.getElementById('zoomIn');
+const zoomOutBtn = document.getElementById('zoomOut');
+const zoomResetBtn = document.getElementById('zoomReset');
+const zoomLevelEl = document.getElementById('zoomLevel');
+
+let zoomScale = 1;
+const ZOOM_STEP = 0.25;
+const ZOOM_MIN = 0.25;
+const ZOOM_MAX = 4;
+
+function applyZoom() {
+  const svgEl = modalSvg.querySelector('svg');
+  if (!svgEl) return;
+  const base = 500;
+  svgEl.style.width = (base * zoomScale) + 'px';
+  svgEl.style.height = (base * zoomScale) + 'px';
+  zoomLevelEl.textContent = Math.round(zoomScale * 100) + '%';
+}
+
+zoomInBtn.addEventListener('click', () => {
+  zoomScale = Math.min(ZOOM_MAX, +(zoomScale + ZOOM_STEP).toFixed(2));
+  applyZoom();
+});
+zoomOutBtn.addEventListener('click', () => {
+  zoomScale = Math.max(ZOOM_MIN, +(zoomScale - ZOOM_STEP).toFixed(2));
+  applyZoom();
+});
+zoomResetBtn.addEventListener('click', () => {
+  zoomScale = 1;
+  applyZoom();
+});
 
 const thresholdInput = document.getElementById('threshold');
 const turdSizeInput = document.getElementById('turdSize');
@@ -286,6 +317,8 @@ previewBtn.addEventListener('click', () => {
   modalSvg.innerHTML = currentSvg;
   const svgEl = modalSvg.querySelector('svg');
   if (svgEl) { svgEl.removeAttribute('width'); svgEl.removeAttribute('height'); }
+  zoomScale = 1;
+  applyZoom();
   previewModal.hidden = false;
 });
 modalClose.addEventListener('click', () => { previewModal.hidden = true; });

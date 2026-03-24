@@ -444,10 +444,58 @@ input[type="color"] {
 }
 .modal-close:hover { color: #000; }
 
-.modal-svg svg {
+.modal-zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.zoom-btn {
+  background: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #333;
+  transition: background 0.15s;
+}
+.zoom-btn:hover { background: #ddd; }
+
+.zoom-btn.zoom-reset {
+  width: auto;
+  padding: 0 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.zoom-level {
+  min-width: 46px;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.modal-svg {
+  overflow: auto;
   width: min(70vw, 600px);
   height: min(70vh, 600px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-svg svg {
   display: block;
+  flex-shrink: 0;
+  transition: width 0.15s, height 0.15s;
 }
 
 /* Error toast */
