@@ -487,6 +487,11 @@ input[type="color"] {
   overflow: auto;
   width: min(70vw, 600px);
   height: min(70vh, 600px);
+}
+
+.modal-svg-inner {
+  min-width: 100%;
+  min-height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;

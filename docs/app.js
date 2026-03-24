@@ -314,9 +314,13 @@ function loadImage(file) {
 
 previewBtn.addEventListener('click', () => {
   if (!currentSvg) return;
-  modalSvg.innerHTML = currentSvg;
-  const svgEl = modalSvg.querySelector('svg');
+  const inner = document.createElement('div');
+  inner.className = 'modal-svg-inner';
+  inner.innerHTML = currentSvg;
+  const svgEl = inner.querySelector('svg');
   if (svgEl) { svgEl.removeAttribute('width'); svgEl.removeAttribute('height'); }
+  modalSvg.innerHTML = '';
+  modalSvg.appendChild(inner);
   zoomScale = 1;
   applyZoom();
   previewModal.hidden = false;
