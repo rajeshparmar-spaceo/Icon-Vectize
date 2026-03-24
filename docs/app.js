@@ -142,6 +142,7 @@ async function vectorizeInBrowser(file, opts) {
 
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   applyThreshold(imageData, opts.threshold);
+  if (opts.strokeMode) skeletonize(imageData);
 
   const traceOptions = {
     colorsampling: 0,
@@ -150,9 +151,9 @@ async function vectorizeInBrowser(file, opts) {
       { r: 0, g: 0, b: 0, a: 255 },
       { r: 255, g: 255, b: 255, a: 0 }
     ],
-    ltres: 1,
-    qtres: 1,
-    pathomit: opts.turdSize,
+    ltres: opts.strokeMode ? 0.5 : 1,
+    qtres: opts.strokeMode ? 0.5 : 1,
+    pathomit: opts.strokeMode ? 2 : opts.turdSize,
     rightangleenhance: true,
     strokewidth: 0,
     linefilter: false,
@@ -163,6 +164,73 @@ async function vectorizeInBrowser(file, opts) {
 
   const svgStr = ImageTracer.imagedataToSVG(imageData, traceOptions);
   return postProcessSvg(svgStr, opts);
+}
+
+// Zhang-Suen thinning: reduces thick strokes to 1px centerlines
+function skeletonize(imageData) {
+  const w = imageData.width, h = imageData.height;
+  const d = imageData.data;
+
+  // Build binary grid: 1 = foreground (black), 0 = background
+  const grid = new Uint8Array(w * h);
+  for (let i = 0; i < w * h; i++) {
+    grid[i] = d[i * 4 + 3] > 128 ? 1 : 0;
+  }
+
+  function neighbors(x, y) {
+    // p2..p9 in clockwise order starting from N
+    return [
+      grid[(y - 1) * w + x],      // N
+      grid[(y - 1) * w + x + 1],  // NE
+      grid[y * w + x + 1],        // E
+      grid[(y + 1) * w + x + 1],  // SE
+      grid[(y + 1) * w + x],      // S
+      grid[(y + 1) * w + x - 1],  // SW
+      grid[y * w + x - 1],        // W
+      grid[(y - 1) * w + x - 1],  // NW
+    ];
+  }
+
+  function transitions(p) {
+    let n = 0;
+    for (let i = 0; i < 8; i++) if (p[i] === 0 && p[(i + 1) % 8] === 1) n++;
+    return n;
+  }
+
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (let step = 0; step < 2; step++) {
+      const toRemove = [];
+      for (let y = 1; y < h - 1; y++) {
+        for (let x = 1; x < w - 1; x++) {
+          if (!grid[y * w + x]) continue;
+          const p = neighbors(x, y);
+          const B = p[0] + p[1] + p[2] + p[3] + p[4] + p[5] + p[6] + p[7];
+          if (B < 2 || B > 6) continue;
+          if (transitions(p) !== 1) continue;
+          if (step === 0) {
+            if (p[0] * p[2] * p[4] !== 0) continue; // N*E*S must have a 0
+            if (p[2] * p[4] * p[6] !== 0) continue; // E*S*W must have a 0
+          } else {
+            if (p[0] * p[2] * p[6] !== 0) continue; // N*E*W must have a 0
+            if (p[0] * p[4] * p[6] !== 0) continue; // N*S*W must have a 0
+          }
+          toRemove.push(y * w + x);
+        }
+      }
+      for (const idx of toRemove) { grid[idx] = 0; changed = true; }
+    }
+  }
+
+  // Write skeleton back to imageData
+  for (let i = 0; i < w * h; i++) {
+    if (grid[i]) {
+      d[i * 4] = 0; d[i * 4 + 1] = 0; d[i * 4 + 2] = 0; d[i * 4 + 3] = 255;
+    } else {
+      d[i * 4] = 255; d[i * 4 + 1] = 255; d[i * 4 + 2] = 255; d[i * 4 + 3] = 0;
+    }
+  }
 }
 
 function applyThreshold(imageData, threshold) {
@@ -184,6 +252,9 @@ function postProcessSvg(svg, opts) {
       let newAttrs = attrs
         .replace(/\s+fill="[^"]*"/g, '')
         .replace(/\s+stroke="[^"]*"/g, '')
+        .replace(/\s+stroke-width="[^"]*"/g, '')
+        .replace(/\s+stroke-linecap="[^"]*"/g, '')
+        .replace(/\s+stroke-linejoin="[^"]*"/g, '')
         .replace(/\s+fill-rule="[^"]*"/g, '');
       const selfClose = match.trimEnd().endsWith('/>') ? '/' : '';
       return `<path fill="none" stroke="${opts.color}" stroke-width="${opts.strokeWidth}" stroke-linecap="round" stroke-linejoin="round"${newAttrs}${selfClose}>`;
