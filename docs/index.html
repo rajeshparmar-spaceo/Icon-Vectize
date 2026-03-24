@@ -102,11 +102,20 @@
           </div>
         </div>
         <div class="actions" id="downloadActions" hidden>
+          <button class="preview-btn" id="previewBtn">Preview</button>
           <button class="download-btn" id="downloadBtn">Download SVG</button>
           <button class="reset-btn" id="resetBtn">Vectorize another</button>
         </div>
       </section>
     </main>
+  </div>
+
+  <!-- Large preview modal -->
+  <div class="modal-overlay" id="previewModal" hidden>
+    <div class="modal-box">
+      <button class="modal-close" id="modalClose" aria-label="Close">&times;</button>
+      <div class="modal-svg" id="modalSvg"></div>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/imagetracerjs@1.2.6/imagetracer_v1.2.6.js"></script>

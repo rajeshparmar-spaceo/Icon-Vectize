@@ -389,6 +389,67 @@ input[type="color"] {
   border-radius: 8px;
 }
 
+/* Preview button */
+.preview-btn {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 13px 20px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.preview-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Large preview modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 24px;
+}
+.modal-overlay[hidden] { display: none; }
+
+.modal-box {
+  background: #ffffff;
+  border-radius: var(--radius);
+  padding: 32px;
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+}
+
+.modal-close {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  background: none;
+  border: none;
+  font-size: 1.6rem;
+  line-height: 1;
+  color: #555;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.modal-close:hover { color: #000; }
+
+.modal-svg svg {
+  width: min(70vw, 600px);
+  height: min(70vh, 600px);
+  display: block;
+}
+
 /* Error toast */
 .toast {
   position: fixed;

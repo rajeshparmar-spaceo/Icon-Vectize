@@ -7,8 +7,12 @@ const svgPreviewBox = document.getElementById('svgPreviewBox');
 const spinner = document.getElementById('spinner');
 const vectorizeBtn = document.getElementById('vectorizeBtn');
 const downloadBtn = document.getElementById('downloadBtn');
+const previewBtn = document.getElementById('previewBtn');
 const resetBtn = document.getElementById('resetBtn');
 const downloadActions = document.getElementById('downloadActions');
+const previewModal = document.getElementById('previewModal');
+const modalSvg = document.getElementById('modalSvg');
+const modalClose = document.getElementById('modalClose');
 
 const thresholdInput = document.getElementById('threshold');
 const turdSizeInput = document.getElementById('turdSize');
@@ -276,6 +280,16 @@ function loadImage(file) {
     img.src = url;
   });
 }
+
+previewBtn.addEventListener('click', () => {
+  if (!currentSvg) return;
+  modalSvg.innerHTML = currentSvg;
+  const svgEl = modalSvg.querySelector('svg');
+  if (svgEl) { svgEl.removeAttribute('width'); svgEl.removeAttribute('height'); }
+  previewModal.hidden = false;
+});
+modalClose.addEventListener('click', () => { previewModal.hidden = true; });
+previewModal.addEventListener('click', (e) => { if (e.target === previewModal) previewModal.hidden = true; });
 
 downloadBtn.addEventListener('click', () => {
   if (!currentSvg) return;
